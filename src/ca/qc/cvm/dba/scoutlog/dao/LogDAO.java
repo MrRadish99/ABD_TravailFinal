@@ -153,17 +153,17 @@ public class LogDAO {
 				} 
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("p1", position);
-				StatementResult result = session.run("MATCH (a:LogEntry) RETURN a ORDER BY a.date DESC ", params);
+				StatementResult result = session.run("MATCH (a:LogEntry) RETURN a ORDER BY a.date DESC  SKIP {p1} LIMIT 1", params);
 				
 				
 				if(result.hasNext()) {
 					Record record = result.next();
 					Node node = record.get("a").asNode();
 					
-					if(node.get("status").asString() == "Normal") {
+					if(node.get("status").asString().equals("Normal")) {
                         log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString());
                     }
-                    else if(node.get("status").asString() == "Anormal") {
+                    else if(node.get("status").asString().equals( "Anormal")) {
                         log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString(), node.get("reasons").asString());
                     }
                     else {
@@ -179,7 +179,6 @@ public class LogDAO {
                          
                             if (connection.get(null, theKey, theData, LockMode.DEFAULT) == OperationStatus.SUCCESS) { 
                                 retData = theData.getData();
-                                String foundData = new String(retData, "UTF-8");
 
                             } 
                         
@@ -188,14 +187,12 @@ public class LogDAO {
                         	e.printStackTrace();
                         }
                           
-                        List<String> nearPlanets = new ArrayList<>();
+                        List<String> nearPlanets = new ArrayList<String>();
                         
-                        if (node.get("nearPlanets").asList()!=null) {
-	                        for(Object planet : node.get("nearPlanets").asList()) {
-	                        	nearPlanets.add(planet.toString());
-	                        }
+                        for(Object planet : node.get("nearPlanets").asList()) {
+                        	nearPlanets.add(planet.toString());
                         }
-                        
+
                         log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString(), node.get("reasons").asString(), nearPlanets, node.get("planetName").asString(), node.get("galaxyName").asString(),retData,node.get("isHabitable").asBoolean()); //nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey
                     }
 				}
