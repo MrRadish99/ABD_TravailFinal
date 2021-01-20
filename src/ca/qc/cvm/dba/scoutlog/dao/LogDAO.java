@@ -1,7 +1,14 @@
 package ca.qc.cvm.dba.scoutlog.dao;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.neo4j.driver.Session;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
 
 import ca.qc.cvm.dba.scoutlog.entity.LogEntry;
 
@@ -21,9 +28,62 @@ public class LogDAO {
 		
 		System.out.println(log.toString());
 		
-		if (log.getImage() != null) {
-			// l'entrée possède une image!
+		try {
+			  Session session = Neo4jConnection.getConnection();
+			  Map<String, Object> params = new HashMap<String, Object>();
+			
+			if(log.getStatus() == "Normal") {
+				params.put("p1", log.getDate());
+				params.put("p2", log.getName());
+				params.put("p3", log.getStatus());
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}})", params);
+			}
+			else if(log.getStatus() == "Anormal") {
+				params.put("p1", log.getDate());
+				params.put("p2", log.getName());
+				params.put("p3", log.getStatus());
+				params.put("p4", log.getReasons());
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons{p4}})", params);
+			}
+			else{
+				
+				String key = log.getPlanetName();
+				
+				if (log.getImage() != null) {
+					Database connection = BerkeleyConnection.getConnection();
+
+					byte[] data = log.getImage();
+					 
+					try {
+					    DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+					    DatabaseEntry theData = new DatabaseEntry(data);
+					    connection.put(null, theKey, theData); 
+					} 
+					catch (Exception e) {
+					    // Exception handling
+					}
+				}
+				
+				params.put("p1", log.getDate());
+				params.put("p2", log.getName());
+				params.put("p3", log.getStatus());
+				params.put("p4", log.getReasons());
+				params.put("p5", log.getNearPlanets());
+				params.put("p6", log.getPlanetName());
+				params.put("p7", log.getGalaxyName());
+				params.put("p8", log.isHabitable());
+				params.put("p9", key);
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons{p4}, nearPlanets: {p5}, planetName: {p6}, galaxyName{p7}, isHabitable{p8}, imageKey{p9}})"
+						+ "CREATE (a)-[r:Near]->(b) WHERE a.planetName = {p6} AND b.nearPlanets = {p4}",params);
+				
+			}
+			success = true;
+			
 		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		
 		
 		return success;
 	}
