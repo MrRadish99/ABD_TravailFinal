@@ -12,7 +12,8 @@ import org.neo4j.driver.types.Node;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
-
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.OperationStatus;
 
 import ca.qc.cvm.dba.scoutlog.entity.LogEntry;
 
@@ -158,10 +159,46 @@ public class LogDAO {
 				if(result.hasNext()) {
 					Record record = result.next();
 					Node node = record.get("a").asNode();
-					log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString());
-					System.out.println(record.get("a.date").asString());
+					
+					if(node.get("status").asString() == "Normal") {
+                        log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString());
+                    }
+                    else if(node.get("status").asString() == "Anormal") {
+                        log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString(), node.get("reasons").asString());
+                    }
+                    else {
+                        
+                        byte[] retData = null;
+                        Database connection = BerkeleyConnection.getConnection();
+
+                        String key = node.get("imageKey").asString();
+
+                        try {
+                            DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+                            DatabaseEntry theData = new DatabaseEntry();
+                         
+                            if (connection.get(null, theKey, theData, LockMode.DEFAULT) == OperationStatus.SUCCESS) { 
+                                retData = theData.getData();
+                                String foundData = new String(retData, "UTF-8");
+
+                            } 
+                        
+                        } 
+                        catch (Exception e) {
+                        	e.printStackTrace();
+                        }
+                          
+                        List<String> nearPlanets = new ArrayList<>();
+                        
+                        if (node.get("nearPlanets").asList()!=null) {
+	                        for(Object planet : node.get("nearPlanets").asList()) {
+	                        	nearPlanets.add(planet.toString());
+	                        }
+                        }
+                        
+                        log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString(), node.get("reasons").asString(), nearPlanets, node.get("planetName").asString(), node.get("galaxyName").asString(),retData,node.get("isHabitable").asBoolean()); //nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey
+                    }
 				}
-	
 			}
 			catch (Exception e) {
 				e.printStackTrace();
