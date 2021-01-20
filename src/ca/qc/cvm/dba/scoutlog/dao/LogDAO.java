@@ -111,7 +111,6 @@ public class LogDAO {
 				while(result.hasNext()) {
 					Record record = result.next();
 					planets.add(record.get("a.planetName").asString());
-					System.out.print(record.get("a.planetName").asString());
 				}
 			}
 			catch (Exception e) {
@@ -139,7 +138,29 @@ public class LogDAO {
 	 * @return
 	 */
 	public static LogEntry getLogEntryByPosition(int position) {
-		return null;
+		
+		LogEntry log = null;
+		
+		 try {
+			 	Session session = Neo4jConnection.getConnection();
+				
+				StatementResult index = session.run("CALL db.indexes() YIELD description WHERE description contains ':LogEntry(date)' RETURN *");
+				if(!index.hasNext()) {
+					session.run("CREATE INDEX ON :LogEntry(date)");
+				} 
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("p1", position);
+				StatementResult result = session.run("MATCH (a:LogEntry) RETURN (a) ORDER BY a.date DESC LIMIT {p1}, {p1} ", params);
+				if(result.hasNext()) {
+					Record record = result.next();
+					log = new LogEntry(record.get("a.date").asString(), record.get("a.name").asString(), record.get("a.status").asString());
+				}
+	
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		return log;
 	}
 	
 	/**
@@ -164,7 +185,22 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getNumberOfEntries() {
-		return 0;
+		
+		int nbNodes =0;
+		
+		 try {
+			 	Session session = Neo4jConnection.getConnection();
+				
+			 	StatementResult result = session.run("MATCH (n) RETURN COUNT(n) as nbNode");
+				nbNodes = result.next().get("nbNode").asInt();
+	
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		
+		
+		return nbNodes;
 	}
 	
 	/**
