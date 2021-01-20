@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
+import org.neo4j.driver.StatementResult;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
@@ -32,18 +34,16 @@ public class LogDAO {
 			  Session session = Neo4jConnection.getConnection();
 			  Map<String, Object> params = new HashMap<String, Object>();
 			
+			  params.put("p1", log.getDate());
+			  params.put("p2", log.getName());
+			  params.put("p3", log.getStatus());
+			  
 			if(log.getStatus() == "Normal") {
-				params.put("p1", log.getDate());
-				params.put("p2", log.getName());
-				params.put("p3", log.getStatus());
 				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}})", params);
 			}
 			else if(log.getStatus() == "Anormal") {
-				params.put("p1", log.getDate());
-				params.put("p2", log.getName());
-				params.put("p3", log.getStatus());
 				params.put("p4", log.getReasons());
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons{p4}})", params);
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons: {p4}})", params);
 			}
 			else{
 				
@@ -64,16 +64,13 @@ public class LogDAO {
 					}
 				}
 				
-				params.put("p1", log.getDate());
-				params.put("p2", log.getName());
-				params.put("p3", log.getStatus());
 				params.put("p4", log.getReasons());
 				params.put("p5", log.getNearPlanets());
 				params.put("p6", log.getPlanetName());
 				params.put("p7", log.getGalaxyName());
 				params.put("p8", log.isHabitable());
 				params.put("p9", key);
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons{p4}, nearPlanets: {p5}, planetName: {p6}, galaxyName{p7}, isHabitable{p8}, imageKey{p9}})"
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons: {p4}, nearPlanets: {p5}, planetName: {p6}, galaxyName: {p7}, isHabitable: {p8}, imageKey: {p9}})"
 						+ "CREATE (a)-[r:Near]->(b) WHERE a.planetName = {p6} AND b.nearPlanets = {p4}",params);
 				
 			}
@@ -101,6 +98,22 @@ public class LogDAO {
 		List<String> planets = new ArrayList<String>();
 		
 		// Exemple...
+		 
+		 try {
+			 	Session session = Neo4jConnection.getConnection();
+				
+				StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.planetName IS NOT NULL RETURN a.planetName");
+	
+				while(result.hasNext()) {
+					Record record = result.next();
+					planets.add(record.get("a.planetName").asString());
+					System.out.print(record.get("a.planetName").asString());
+				}
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		 	 
 		planets.add("Terre");
 		planets.add("Solaria");
 		planets.add("Dune");
