@@ -20,11 +20,5 @@ public class Main {
 		
 	}
 	
-	public void grosTest() {
-		allo
-		
-		
-		
-	}
 
 }
