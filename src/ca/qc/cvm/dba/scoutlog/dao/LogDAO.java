@@ -8,9 +8,11 @@ import java.util.Map;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.types.Node;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
+
 
 import ca.qc.cvm.dba.scoutlog.entity.LogEntry;
 
@@ -39,11 +41,11 @@ public class LogDAO {
 			  params.put("p3", log.getStatus());
 			  
 			if(log.getStatus() == "Normal") {
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}})", params);
+				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}})", params);
 			}
 			else if(log.getStatus() == "Anormal") {
 				params.put("p4", log.getReasons());
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons: {p4}})", params);
+				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, reasons: {p4}})", params);
 			}
 			else{
 				
@@ -69,7 +71,7 @@ public class LogDAO {
 				params.put("p6", log.getGalaxyName());
 				params.put("p7", log.isHabitable());
 				params.put("p8", key);
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
+				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
 				
 				for(String planet : log.getNearPlanets()) {
 					params.put("p9", planet);
@@ -150,10 +152,14 @@ public class LogDAO {
 				} 
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("p1", position);
-				StatementResult result = session.run("MATCH (a:LogEntry) RETURN (a) ORDER BY a.date DESC LIMIT {p1}, {p1} ", params);
+				StatementResult result = session.run("MATCH (a:LogEntry) RETURN a ORDER BY a.date DESC ", params);
+				
+				
 				if(result.hasNext()) {
 					Record record = result.next();
-					log = new LogEntry(record.get("a.date").asString(), record.get("a.name").asString(), record.get("a.status").asString());
+					Node node = record.get("a").asNode();
+					log = new LogEntry(node.get("date").asString(), node.get("name").asString(), node.get("status").asString());
+					System.out.println(record.get("a.date").asString());
 				}
 	
 			}
