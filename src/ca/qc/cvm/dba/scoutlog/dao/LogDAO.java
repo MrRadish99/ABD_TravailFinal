@@ -60,18 +60,22 @@ public class LogDAO {
 					    connection.put(null, theKey, theData); 
 					} 
 					catch (Exception e) {
-					    // Exception handling
+						e.printStackTrace();
 					}
 				}
 				
-				params.put("p4", log.getReasons());
-				params.put("p5", log.getNearPlanets());
-				params.put("p6", log.getPlanetName());
-				params.put("p7", log.getGalaxyName());
-				params.put("p8", log.isHabitable());
-				params.put("p9", key);
-				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, reasons: {p4}, nearPlanets: {p5}, planetName: {p6}, galaxyName: {p7}, isHabitable: {p8}, imageKey: {p9}})"
-						+ "CREATE (a)-[r:Near]->(b) WHERE a.planetName = {p6} AND b.nearPlanets = {p4}",params);
+				params.put("p4", log.getNearPlanets());
+				params.put("p5", log.getPlanetName());
+				params.put("p6", log.getGalaxyName());
+				params.put("p7", log.isHabitable());
+				params.put("p8", key);
+				session.run("CREATE (a:LogEntry {date: {p1}, nom: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
+				
+				for(String planet : log.getNearPlanets()) {
+					params.put("p9", planet);
+					
+					session.run("MATCH (a:LogEntry),(b:LogEntry) WHERE a.planetName = {p5} AND b.planetName = {p9} CREATE (a)-[:Near]->(b)-[:Near]->(a)",params);	
+				}
 				
 			}
 			success = true;
