@@ -9,6 +9,7 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.StatementResult;
 import org.neo4j.driver.types.Node;
+import org.neo4j.driver.types.Relationship;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
@@ -212,6 +213,33 @@ public class LogDAO {
 	public static boolean deleteLog(int position) {
 		boolean success = false;
 		
+		 try {
+			 Session session = Neo4jConnection.getConnection();
+				
+			 Map<String, Object> params = new HashMap<String, Object>();
+			 params.put("p1", position);
+			 StatementResult result = session.run("MATCH (a:LogEntry) RETURN a.date,a.imageKey ORDER BY a.date DESC  SKIP {p1} LIMIT 1", params);
+			
+			 if(result.hasNext()) {
+				 Record record = result.next();
+				 String date = record.get("a.date").asString();
+				 String key = record.get("a.imageKey").asString();
+				 params = new HashMap<String, Object>();
+				 params.put("p2", date);
+				 session.run("MATCH (a:LogEntry) WHERE a.date = {p2} DETACH DELETE (a)", params);
+				 
+				 Database connection = BerkeleyConnection.getConnection();
+
+				 DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+				 connection.delete(null, theKey);
+				 success = true;
+			}
+
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		
 		return success;
 	}
 	
@@ -303,7 +331,42 @@ public class LogDAO {
 	 */
 	public static List<String> getTrajectory(String fromPlanet, String toPlanet) {
 		
-		return null;
+		System.out.println(fromPlanet);
+		System.out.println(toPlanet);
+		List<String> trajectory = new ArrayList<String>();
+		try {
+			  	Session session = Neo4jConnection.getConnection();
+					
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("p1", fromPlanet );
+				params.put("p2", toPlanet );
+				
+				if(fromPlanet.equals(toPlanet)) {
+					trajectory.add(fromPlanet);
+				}
+				else {
+				
+					List<Object> obj = Neo4jConnection.getPath("MATCH (a:LogEntry), (b:LogEntry), p = shortestPath((a)-[*]->(b)) WHERE a.planetName = {p1} AND b.planetName = {p2}RETURN p as path", params);
+		
+					if (obj.size() > 0) {
+						for (Object o : obj) {
+							if (o instanceof Node) {
+								Node node = (Node)o;
+								trajectory.add(node.get("planetName").asString());
+							}					
+						}				
+					}
+					else {
+						trajectory = null;
+					}
+				}
+				
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		
+		return trajectory;
 	}
 
 	/**
