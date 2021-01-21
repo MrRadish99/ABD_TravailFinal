@@ -31,58 +31,69 @@ public class LogDAO {
 	 */
 	public static boolean addLog(LogEntry log) {
 		boolean success = false;
-		
-		System.out.println(log.toString());
+		boolean verification = false;
 		
 		try {
-			  Session session = Neo4jConnection.getConnection();
-			  Map<String, Object> params = new HashMap<String, Object>();
+			Session session = Neo4jConnection.getConnection();
+			Map<String, Object> params = new HashMap<String, Object>();
 			
-			  params.put("p1", log.getDate());
-			  params.put("p2", log.getName());
-			  params.put("p3", log.getStatus());
-			  
-			if(log.getStatus() == "Normal") {
-				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}})", params);
-			}
-			else if(log.getStatus() == "Anormal") {
-				params.put("p4", log.getReasons());
-				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, reasons: {p4}})", params);
-			}
-			else{
+			params.put("p1", log.getDate());
+			params.put("p2", log.getName());
+			params.put("p3", log.getStatus());
+			 
 				
-				String key = log.getPlanetName();
-				
-				if (log.getImage() != null) {
-					Database connection = BerkeleyConnection.getConnection();
+			Map<String, Object> verif = new HashMap<String, Object>();
+			verif.put("p1", log.getDate());
+			
+			StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.date = {p1} RETURN a", params);
 
-					byte[] data = log.getImage();
-					 
-					try {
-					    DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-					    DatabaseEntry theData = new DatabaseEntry(data);
-					    connection.put(null, theKey, theData); 
-					} 
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-				
-				params.put("p4", log.getNearPlanets());
-				params.put("p5", log.getPlanetName());
-				params.put("p6", log.getGalaxyName());
-				params.put("p7", log.isHabitable());
-				params.put("p8", key);
-				session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
-				
-				for(String planet : log.getNearPlanets()) {
-					params.put("p9", planet);
-					
-					session.run("MATCH (a:LogEntry),(b:LogEntry) WHERE a.planetName = {p5} AND b.planetName = {p9} CREATE (a)-[:Near]->(b)-[:Near]->(a)",params);	
-				}
-				
+			if(!result.hasNext()) {
+				verification = true;
 			}
-			success = true;
+			  
+			if (verification) {
+				if(log.getStatus() == "Normal") {
+					session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}})", params);
+				}
+				else if(log.getStatus() == "Anormal") {
+					params.put("p4", log.getReasons());
+					session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, reasons: {p4}})", params);
+				}
+				else{
+					
+					String key = log.getPlanetName();
+					
+					if (log.getImage() != null) {
+						Database connection = BerkeleyConnection.getConnection();
+	
+						byte[] data = log.getImage();
+						 
+						try {
+						    DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+						    DatabaseEntry theData = new DatabaseEntry(data);
+						    connection.put(null, theKey, theData); 
+						} 
+						catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+					
+					params.put("p4", log.getNearPlanets());
+					params.put("p5", log.getPlanetName());
+					params.put("p6", log.getGalaxyName());
+					params.put("p7", log.isHabitable());
+					params.put("p8", key);
+					session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
+					
+					for(String planet : log.getNearPlanets()) {
+						params.put("p9", planet);
+						
+						session.run("MATCH (a:LogEntry),(b:LogEntry) WHERE a.planetName = {p5} AND b.planetName = {p9} CREATE (a)-[:Near]->(b)-[:Near]->(a)",params);	
+					}
+					
+				}
+				success = true;
+			}
 			
 		}
 		catch(Exception e) {
