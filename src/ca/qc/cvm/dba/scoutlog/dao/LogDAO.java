@@ -331,12 +331,9 @@ public class LogDAO {
 	 */
 	public static List<String> getTrajectory(String fromPlanet, String toPlanet) {
 		
-		System.out.println(fromPlanet);
-		System.out.println(toPlanet);
 		List<String> trajectory = new ArrayList<String>();
 		try {
-			  	Session session = Neo4jConnection.getConnection();
-					
+			  				
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("p1", fromPlanet );
 				params.put("p2", toPlanet );
@@ -346,10 +343,10 @@ public class LogDAO {
 				}
 				else {
 				
-					List<Object> obj = Neo4jConnection.getPath("MATCH (a:LogEntry), (b:LogEntry), p = shortestPath((a)-[*]->(b)) WHERE a.planetName = {p1} AND b.planetName = {p2}RETURN p as path", params);
+					List<Object> trajet = Neo4jConnection.getPath("MATCH (a:LogEntry), (b:LogEntry), p = shortestPath((a)-[*]->(b)) WHERE a.planetName = {p1} AND b.planetName = {p2} RETURN p as path", params);
 		
-					if (obj.size() > 0) {
-						for (Object o : obj) {
+					if (trajet.size() > 0) {
+						for (Object o : trajet) {
 							if (o instanceof Node) {
 								Node node = (Node)o;
 								trajectory.add(node.get("planetName").asString());
@@ -377,6 +374,29 @@ public class LogDAO {
 	 */	
 	public static List<String> getExploredGalaxies(int limit) {
 		List<String> galaxyList = new ArrayList<String>();
+		
+		 try {
+			 	Session session = Neo4jConnection.getConnection();
+				
+				StatementResult index = session.run("CALL db.indexes() YIELD description WHERE description contains ':LogEntry(galaxyName)' RETURN *");
+				if(!index.hasNext()) {
+					session.run("CREATE INDEX ON :LogEntry(galxyName)");
+				} 
+				
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("p1", limit);
+				StatementResult result = session.run("MATCH (a:LogEntry) WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName, nb ORDER BY nb DESC LIMIT {p1}", params);
+				
+				while(result.hasNext()) {
+					Record record = result.next();
+					String temps = record.get("galName").asString() + " ( "+ record.get("nb").asInt() + " planètes visitées)";
+					galaxyList.add(temps);
+				}
+
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 
 		return galaxyList;
 	}
