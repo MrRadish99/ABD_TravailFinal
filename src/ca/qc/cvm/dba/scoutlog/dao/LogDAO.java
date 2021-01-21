@@ -9,8 +9,8 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.StatementResult;
 import org.neo4j.driver.types.Node;
-import org.neo4j.driver.types.Relationship;
 
+import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
@@ -121,9 +121,6 @@ public class LogDAO {
 				e.printStackTrace();
 			}
 		 	 
-		planets.add("Terre");
-		planets.add("Solaria");
-		planets.add("Dune");
 		
 		return planets;
 	}
@@ -316,7 +313,12 @@ public class LogDAO {
 			 	expCount = result2.next().get("expCount").asInt();
 			 	total = result.next().get("total").asInt();
 			 	
-			 	expAvg = (expCount*100)/total;		
+			 	if (total >0) {
+			 		expAvg = (expCount*100)/total;		
+			 	}
+			 	else {
+			 		expAvg =0;
+			 	}
 			 	
 	
 			}
@@ -334,7 +336,32 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getPhotoCount() {
-		return 0;
+		
+		int photoCount =0;
+		Cursor myCursor = null;
+		
+		Database connection = BerkeleyConnection.getConnection();
+		 
+		try {
+			myCursor = connection.openCursor(null, null);
+		 
+		    DatabaseEntry foundKey = new DatabaseEntry();
+		    DatabaseEntry foundData = new DatabaseEntry();
+		 
+		    while (myCursor.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+		        photoCount ++;
+
+		    }
+		    myCursor.close();
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			  myCursor.close();
+		 }
+		
+		return photoCount;
 	}
 	
 
@@ -479,6 +506,42 @@ public class LogDAO {
 	 */
 	public static boolean deleteAll() {
 		boolean success = false;
+		
+		Cursor myCursor = null;
+		List<String> trousseau = new ArrayList <String>();
+		
+		 try {
+			 	 Session session = Neo4jConnection.getConnection();
+			 
+				 session.run("MATCH (a:LogEntry) DETACH DELETE (a)");
+				 
+				 Database connection = BerkeleyConnection.getConnection();
+	
+				 myCursor = connection.openCursor(null, null);
+				 
+			     DatabaseEntry foundKey = new DatabaseEntry();
+			     DatabaseEntry foundData = new DatabaseEntry();
+			 
+			     while (myCursor.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+			    	 trousseau.add(new String(foundKey.getData(), "UTF-8"));	
+			     }
+			     myCursor.close();
+			     
+			     for(String key : trousseau) {
+				     DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+				     connection.delete(null, theKey);
+			     }
+				 success = true;
+
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			 finally {
+				 if (myCursor != null) {
+					 myCursor.close();
+				 }
+			 }
 		
 		return success;
 	}
