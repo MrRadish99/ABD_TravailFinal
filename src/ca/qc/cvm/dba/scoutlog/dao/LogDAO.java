@@ -45,7 +45,7 @@ public class LogDAO {
 			Map<String, Object> verif = new HashMap<String, Object>();
 			verif.put("p1", log.getDate());
 			
-			StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.date = {p1} RETURN a", params);
+			StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.date = {p1} RETURN a", verif);
 
 			if(!result.hasNext()) {
 				verification = true;
@@ -63,34 +63,42 @@ public class LogDAO {
 					
 					String key = log.getPlanetName();
 					
-					if (log.getImage() != null) {
-						Database connection = BerkeleyConnection.getConnection();
-	
-						byte[] data = log.getImage();
-						 
-						try {
-						    DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-						    DatabaseEntry theData = new DatabaseEntry(data);
-						    connection.put(null, theKey, theData); 
-						} 
-						catch (Exception e) {
-							e.printStackTrace();
+					verif = new HashMap<String, Object>();
+					verif.put("p2", key);
+					StatementResult result1 = session.run("MATCH (a:LogEntry) WHERE a.planetName = {p2} RETURN a", verif);
+
+					if(!result1.hasNext()) {
+						if (log.getImage() != null) {
+							Database connection = BerkeleyConnection.getConnection();
+		
+							byte[] data = log.getImage();
+							 
+							try {
+							    DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+							    DatabaseEntry theData = new DatabaseEntry(data);
+							    connection.put(null, theKey, theData); 
+							} 
+							catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+						
+						params.put("p4", log.getNearPlanets());
+						params.put("p5", log.getPlanetName());
+						params.put("p6", log.getGalaxyName());
+						params.put("p7", log.isHabitable());
+						params.put("p8", key);
+						session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
+						
+						for(String planet : log.getNearPlanets()) {
+							params.put("p9", planet);
+							
+							session.run("MATCH (a:LogEntry),(b:LogEntry) WHERE a.planetName = {p5} AND b.planetName = {p9} CREATE (a)-[:Near]->(b)-[:Near]->(a)",params);	
 						}
 					}
-					
-					params.put("p4", log.getNearPlanets());
-					params.put("p5", log.getPlanetName());
-					params.put("p6", log.getGalaxyName());
-					params.put("p7", log.isHabitable());
-					params.put("p8", key);
-					session.run("CREATE (a:LogEntry {date: {p1}, name: {p2}, status:{p3}, nearPlanets: {p4}, planetName: {p5}, galaxyName: {p6}, isHabitable: {p7}, imageKey: {p8}})",params);
-					
-					for(String planet : log.getNearPlanets()) {
-						params.put("p9", planet);
-						
-						session.run("MATCH (a:LogEntry),(b:LogEntry) WHERE a.planetName = {p5} AND b.planetName = {p9} CREATE (a)-[:Near]->(b)-[:Near]->(a)",params);	
+					else {
+						return false;
 					}
-					
 				}
 				success = true;
 			}
@@ -421,9 +429,12 @@ public class LogDAO {
             
             StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.isHabitable = true WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName ORDER BY nb DESC LIMIT 1");
             
-            while(result.hasNext()) {
+            if(result.hasNext()) {
                 Record record = result.next();
                 bestGalaxy = record.get("galName").asString();
+            }
+            else {
+            	bestGalaxy = "Aucune";
             }
 
         }
