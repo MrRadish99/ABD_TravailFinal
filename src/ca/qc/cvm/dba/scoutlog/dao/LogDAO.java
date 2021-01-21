@@ -277,7 +277,23 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getNumberOfHabitablePlanets() {
-		return 0;
+		
+		int nbHabitable = 0;
+		
+		try {
+			Session session = Neo4jConnection.getConnection();
+		 	
+		 	StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.isHabitable = true RETURN COUNT(a) AS nbHabitable");
+		 	nbHabitable = result.next().get("nbHabitable").asInt();
+		 
+		 	
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+
+	 	
+		 return nbHabitable;
 	}
 	
 	/**
@@ -287,7 +303,28 @@ public class LogDAO {
 	 * @return moyenne, entre 0 et 100
 	 */
 	public static int getExplorationAverage() {
-		return 0;
+		int expCount = 0;
+		int total = 0;
+		int expAvg = 0;
+		
+		 try {
+			 	Session session = Neo4jConnection.getConnection();
+			 	
+				
+			 	StatementResult result = session.run("MATCH (a:LogEntry) RETURN COUNT(a) AS total");
+			 	StatementResult result2 = session.run("MATCH (a:LogEntry) WHERE a.status = 'Exploration' RETURN COUNT(a) AS expCount");
+			 	expCount = result2.next().get("expCount").asInt();
+			 	total = result.next().get("total").asInt();
+			 	
+			 	expAvg = (expCount*100)/total;		
+			 	
+	
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		
+		return expAvg;
 	}
 
 	
@@ -309,6 +346,25 @@ public class LogDAO {
 	 */
 	public static List<String> getLastVisitedPlanets(int limit) {
 		List<String> planetList = new ArrayList<String>();
+		
+		   
+        try {
+             Session session = Neo4jConnection.getConnection();
+             
+             Map<String, Object> params = new HashMap<String, Object>();
+			params.put("p1", limit);
+            
+             StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.status = 'Exploration' RETURN a.planetName ORDER BY a.date DESC LIMIT {p1}",params);
+            
+            while(result.hasNext()) {
+                Record record = result.next();
+                planetList.add(record.get("a.planetName").asString());
+            }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 				
 		return planetList;
 	}
@@ -319,8 +375,25 @@ public class LogDAO {
 	 * @return le nom de la galaxie
 	 */
 	public static String getBestGalaxy() {
-		return "";
-	}
+        
+        String bestGalaxy = null;
+        
+        try {
+             Session session = Neo4jConnection.getConnection();
+            
+            StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.isHabitable = true WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName ORDER BY nb DESC LIMIT 1");
+            
+            while(result.hasNext()) {
+                Record record = result.next();
+                bestGalaxy = record.get("galName").asString();
+            }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bestGalaxy;
+    }
 	
 	/**
 	 * Permet de trouver une chemin pour se rendre d'une planète à une autre 
@@ -385,7 +458,7 @@ public class LogDAO {
 				
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("p1", limit);
-				StatementResult result = session.run("MATCH (a:LogEntry) WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName, nb ORDER BY nb DESC LIMIT {p1}", params);
+				StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.status = 'Exploration' WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName, nb ORDER BY nb DESC LIMIT {p1}", params);
 				
 				while(result.hasNext()) {
 					Record record = result.next();
@@ -410,3 +483,32 @@ public class LogDAO {
 		return success;
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
