@@ -230,26 +230,26 @@ public class LogDAO {
 		boolean success = false;
 		
 		 try {
-			 Session session = Neo4jConnection.getConnection();
-				
-			 Map<String, Object> params = new HashMap<String, Object>();
-			 params.put("p1", position);
-			 StatementResult result = session.run("MATCH (a:LogEntry) RETURN a.date,a.imageKey ORDER BY a.date DESC  SKIP {p1} LIMIT 1", params);
+				 Session session = Neo4jConnection.getConnection();
+					
+				 Map<String, Object> params = new HashMap<String, Object>();
+				 params.put("p1", position);
+				 StatementResult result = session.run("MATCH (a:LogEntry) RETURN a.date,a.imageKey ORDER BY a.date DESC  SKIP {p1} LIMIT 1", params);
 			
-			 if(result.hasNext()) {
-				 Record record = result.next();
-				 String date = record.get("a.date").asString();
-				 String key = record.get("a.imageKey").asString();
-				 params = new HashMap<String, Object>();
-				 params.put("p2", date);
-				 session.run("MATCH (a:LogEntry) WHERE a.date = {p2} DETACH DELETE (a)", params);
-				 
-				 Database connection = BerkeleyConnection.getConnection();
-
-				 DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-				 connection.delete(null, theKey);
-				 success = true;
-			}
+				 if(result.hasNext()) {
+					 Record record = result.next();
+					 String date = record.get("a.date").asString();
+					 String key = record.get("a.imageKey").asString();
+					 params = new HashMap<String, Object>();
+					 params.put("p2", date);
+					 session.run("MATCH (a:LogEntry) WHERE a.date = {p2} DETACH DELETE (a)", params);
+					 
+					 Database connection = BerkeleyConnection.getConnection();
+	
+					 DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+					 connection.delete(null, theKey);
+					 success = true;
+				 }
 
 			}
 			catch (Exception e) {
@@ -378,7 +378,7 @@ public class LogDAO {
 		}
 		finally {
 			  myCursor.close();
-		 }
+		}
 		
 		return photoCount;
 	}
@@ -395,17 +395,17 @@ public class LogDAO {
 		
 		   
         try {
-             Session session = Neo4jConnection.getConnection();
+             	Session session = Neo4jConnection.getConnection();
              
-             Map<String, Object> params = new HashMap<String, Object>();
-			params.put("p1", limit);
+             	Map<String, Object> params = new HashMap<String, Object>();
+             	params.put("p1", limit);
             
-             StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.status = 'Exploration' RETURN a.planetName ORDER BY a.date DESC LIMIT {p1}",params);
+             	StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.status = 'Exploration' RETURN a.planetName ORDER BY a.date DESC LIMIT {p1}",params);
             
-            while(result.hasNext()) {
-                Record record = result.next();
-                planetList.add(record.get("a.planetName").asString());
-            }
+             	while(result.hasNext()) {
+             		Record record = result.next();
+             		planetList.add(record.get("a.planetName").asString());
+             	}
 
         }
         catch (Exception e) {
@@ -425,17 +425,17 @@ public class LogDAO {
         String bestGalaxy = null;
         
         try {
-             Session session = Neo4jConnection.getConnection();
+             	Session session = Neo4jConnection.getConnection();
             
-            StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.isHabitable = true WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName ORDER BY nb DESC LIMIT 1");
+             	StatementResult result = session.run("MATCH (a:LogEntry) WHERE a.isHabitable = true WITH a.galaxyName AS galName, COUNT(a.galaxyName) AS nb RETURN galName ORDER BY nb DESC LIMIT 1");
             
-            if(result.hasNext()) {
-                Record record = result.next();
-                bestGalaxy = record.get("galName").asString();
-            }
-            else {
-            	bestGalaxy = "Aucune";
-            }
+             	if(result.hasNext()) {
+             		Record record = result.next();
+             		bestGalaxy = record.get("galName").asString();
+             	}
+             	else {
+             		bestGalaxy = "Aucune";
+             	}
 
         }
         catch (Exception e) {
@@ -502,7 +502,7 @@ public class LogDAO {
 				
 				StatementResult index = session.run("CALL db.indexes() YIELD description WHERE description contains ':LogEntry(galaxyName)' RETURN *");
 				if(!index.hasNext()) {
-					session.run("CREATE INDEX ON :LogEntry(galxyName)");
+					session.run("CREATE INDEX ON :LogEntry(galaxyName)");
 				} 
 				
 				Map<String, Object> params = new HashMap<String, Object>();
